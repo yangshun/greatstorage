@@ -25,35 +25,35 @@ All keys in `localStorage` share a single flat namespace per origin. When multip
 ## API
 
 ```ts
-import { createStorage } from 'greatstorage';
+import { createStorage } from "greatstorage";
 
 const storage = createStorage(); // defaults to localStorage, no prefix
 
 // Automatic serialization (primitives, objects, arrays)
-storage.set('user', { name: 'Alice', age: 30 });
-storage.get('user'); // → { name: 'Alice', age: 30 }
+storage.set("user", { name: "Alice", age: 30 });
+storage.get("user"); // → { name: 'Alice', age: 30 }
 
 // Rich types (Set, Map, Date, RegExp)
-storage.set('tags', new Set(['a', 'b']));
-storage.get('tags'); // → Set {'a', 'b'}
+storage.set("tags", new Set(["a", "b"]));
+storage.get("tags"); // → Set {'a', 'b'}
 
-storage.set('created', new Date('2025-01-15'));
-storage.get('created'); // → Date 2025-01-15T00:00:00.000Z
+storage.set("created", new Date("2025-01-15"));
+storage.get("created"); // → Date 2025-01-15T00:00:00.000Z
 
 // TTL support
-storage.set('token', 'abc123', { ttl: 60_000 }); // expires in 60s
-storage.get('token'); // → 'abc123' (or null if expired)
+storage.set("token", "abc123", { ttl: 60_000 }); // expires in 60s
+storage.get("token"); // → 'abc123' (or null if expired)
 
 // Utility methods
-storage.has('key');    // check existence (respects TTL)
-storage.remove('key'); // remove a single key
-storage.clear();       // remove all keys
+storage.has("key"); // check existence (respects TTL)
+storage.remove("key"); // remove a single key
+storage.clear(); // remove all keys
 
 // Namespacing
-const appStorage = createStorage({ prefix: 'myapp:' });
-appStorage.set('user', 'Alice');   // stored as "myapp:user"
-appStorage.get('user');            // → 'Alice'
-appStorage.clear();                // only removes "myapp:*" keys
+const appStorage = createStorage({ prefix: "myapp:" });
+appStorage.set("user", "Alice"); // stored as "myapp:user"
+appStorage.get("user"); // → 'Alice'
+appStorage.clear(); // only removes "myapp:*" keys
 
 // Custom serializer (defaults to devalue)
 const storage2 = createStorage({

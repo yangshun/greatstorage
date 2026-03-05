@@ -1,7 +1,7 @@
-import { stringify, parse } from 'devalue';
-import type { CreateStorageOptions, GreatStorage, Serializer, StorageOptions } from './types';
+import { stringify, parse } from "devalue";
+import type { CreateStorageOptions, GreatStorage, Serializer, StorageOptions } from "./types";
 
-const ENTRY_MARKER = '__gs';
+const ENTRY_MARKER = "__gs";
 
 interface StorageEntryEnvelope {
   [key: string]: unknown;
@@ -11,19 +11,19 @@ interface StorageEntryEnvelope {
 
 function isStorageEntry(data: unknown): data is StorageEntryEnvelope {
   return (
-    typeof data === 'object' &&
+    typeof data === "object" &&
     data !== null &&
     ENTRY_MARKER in data &&
     (data as Record<string, unknown>)[ENTRY_MARKER] === true &&
-    'value' in data &&
-    'expiry' in data
+    "value" in data &&
+    "expiry" in data
   );
 }
 
 export function createStorage(options: CreateStorageOptions = {}): GreatStorage {
   const storage = options.storage ?? localStorage;
-  const separator = options.separator ?? ':';
-  const prefix = options.prefix ? options.prefix + separator : '';
+  const separator = options.separator ?? ":";
+  const prefix = options.prefix ? options.prefix + separator : "";
   const serializer: Serializer = options.serializer ?? { stringify, parse };
 
   function prefixedKey(key: string): string {
@@ -61,11 +61,7 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
     return entry.value as T;
   }
 
-  function set<T = unknown>(
-    key: string,
-    value: T,
-    options?: StorageOptions,
-  ): void {
+  function set<T = unknown>(key: string, value: T, options?: StorageOptions): void {
     const entry = {
       [ENTRY_MARKER]: true as const,
       value,

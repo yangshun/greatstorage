@@ -2,6 +2,17 @@
   "name": "greatstorage",
   "version": "0.1.0",
   "description": "A Storage wrapper with automatic serialization and TTL support",
+  "keywords": [
+    "expiration",
+    "localstorage",
+    "serialization",
+    "storage",
+    "ttl"
+  ],
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
@@ -18,29 +29,24 @@
       }
     }
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
+    "check": "pnpm format && pnpm lint && pnpm test",
     "build": "tsdown",
+    "format": "oxfmt",
+    "lint": "oxlint",
+    "tc": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "keywords": [
-    "localstorage",
-    "storage",
-    "ttl",
-    "expiration",
-    "serialization"
-  ],
-  "license": "MIT",
-  "packageManager": "pnpm@10.30.3",
+  "dependencies": {
+    "devalue": "^5.6.3"
+  },
   "devDependencies": {
+    "oxfmt": "^0.36.0",
+    "oxlint": "^1.51.0",
     "tsdown": "^0.20.3",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   },
-  "dependencies": {
-    "devalue": "^5.6.3"
-  }
+  "packageManager": "pnpm@10.30.3"
 }
