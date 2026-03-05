@@ -347,6 +347,48 @@ describe('greatstorage', () => {
     });
   });
 
+  describe('updateItem', () => {
+    it('updates an existing value', () => {
+      storage.setItem('count', 1);
+      const result = storage.updateItem<number>('count', (v) => (v ?? 0) + 1);
+      expect(result).toBe(2);
+      expect(storage.getItem('count')).toBe(2);
+    });
+
+    it('receives null for missing key', () => {
+      const result = storage.updateItem<number>('count', (v) => (v ?? 0) + 10);
+      expect(result).toBe(10);
+      expect(storage.getItem('count')).toBe(10);
+    });
+
+    it('receives null for expired key', () => {
+      vi.useFakeTimers();
+      storage.setItem('count', 5, { ttl: 1000 });
+      vi.advanceTimersByTime(1001);
+      const result = storage.updateItem<number>('count', (v) => (v ?? 0) + 1);
+      expect(result).toBe(1);
+      vi.useRealTimers();
+    });
+
+    it('applies TTL to the updated value', () => {
+      vi.useFakeTimers();
+      storage.updateItem('key', () => 'value', { ttl: 1000 });
+      vi.advanceTimersByTime(1001);
+      expect(storage.getItem('key')).toBeNull();
+      vi.useRealTimers();
+    });
+
+    it('works with complex types', () => {
+      storage.setItem('tags', new Set(['a']));
+      const result = storage.updateItem<Set<string>>('tags', (s) => {
+        const next = new Set(s ?? []);
+        next.add('b');
+        return next;
+      });
+      expect(result).toEqual(new Set(['a', 'b']));
+    });
+  });
+
   describe('rich types', () => {
     it('stores and retrieves a Set', () => {
       const set = new Set([1, 2, 3]);

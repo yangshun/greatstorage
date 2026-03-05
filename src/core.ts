@@ -123,6 +123,17 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
     return value;
   }
 
+  function updateItem<T = unknown>(
+    key: string,
+    updater: (value: T | null) => T,
+    options?: StorageOptions,
+  ): T {
+    const existing = getItem<T>(key);
+    const updated = updater(existing);
+    setItem(key, updated, options);
+    return updated;
+  }
+
   function removeItem(key: string): void {
     storage.removeItem(prefixedKey(key));
   }
@@ -225,6 +236,7 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
     getItem,
     setItem,
     getOrInit,
+    updateItem,
     removeItem,
     key,
     clear,
