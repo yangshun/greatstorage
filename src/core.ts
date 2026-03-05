@@ -28,6 +28,10 @@ function isStorageEntry(data: unknown): data is StorageEntryEnvelope {
   );
 }
 
+// Implemented as a closure factory rather than a class so that internal helpers
+// (forEachEntry, removeEntries, serializer, etc.) are truly private, destructuring
+// works without `this`-binding issues, and the return type is a plain object that
+// is easy to mock in tests.
 export function createStorage(options: CreateStorageOptions = {}): GreatStorage {
   const storage = options.storage ?? localStorage;
   const separator = options.separator ?? ':';
