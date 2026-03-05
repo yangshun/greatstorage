@@ -3,8 +3,15 @@ import type { StandardSchemaV1 } from '@standard-schema/spec';
 export interface StorageOptions {
   /**
    * Time-to-live in milliseconds. If not set, the item never expires.
+   * Cannot be used together with `expiresAt`.
    */
   ttl?: number;
+
+  /**
+   * Absolute expiration time as a `Date` or Unix timestamp in milliseconds.
+   * Cannot be used together with `ttl`.
+   */
+  expiresAt?: Date | number;
 }
 
 export interface GetOptions<T> {

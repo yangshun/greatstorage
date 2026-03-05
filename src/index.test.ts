@@ -76,6 +76,44 @@ describe('greatstorage', () => {
       vi.useRealTimers();
     });
 
+    it('returns value before expiresAt (Date)', () => {
+      vi.useFakeTimers({ now: 1000 });
+      storage.setItem('temp', 'value', { expiresAt: new Date(2000) });
+      vi.advanceTimersByTime(500);
+      expect(storage.getItem('temp')).toBe('value');
+      vi.useRealTimers();
+    });
+
+    it('returns null after expiresAt (Date)', () => {
+      vi.useFakeTimers({ now: 1000 });
+      storage.setItem('temp', 'value', { expiresAt: new Date(2000) });
+      vi.advanceTimersByTime(1001);
+      expect(storage.getItem('temp')).toBeNull();
+      vi.useRealTimers();
+    });
+
+    it('returns value before expiresAt (timestamp)', () => {
+      vi.useFakeTimers({ now: 1000 });
+      storage.setItem('temp', 'value', { expiresAt: 2000 });
+      vi.advanceTimersByTime(500);
+      expect(storage.getItem('temp')).toBe('value');
+      vi.useRealTimers();
+    });
+
+    it('returns null after expiresAt (timestamp)', () => {
+      vi.useFakeTimers({ now: 1000 });
+      storage.setItem('temp', 'value', { expiresAt: 2000 });
+      vi.advanceTimersByTime(1001);
+      expect(storage.getItem('temp')).toBeNull();
+      vi.useRealTimers();
+    });
+
+    it('throws when both ttl and expiresAt are specified', () => {
+      expect(() =>
+        storage.setItem('key', 'value', { ttl: 1000, expiresAt: Date.now() + 1000 }),
+      ).toThrow('Cannot specify both "ttl" and "expiresAt"');
+    });
+
     it('persists value when no TTL is set', () => {
       vi.useFakeTimers();
       storage.setItem('permanent', 'value');

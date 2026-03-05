@@ -86,12 +86,28 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
     return entry.value as T;
   }
 
+  function resolveExpiry(options?: StorageOptions): number | null {
+    if (options?.ttl != null && options?.expiresAt != null) {
+      throw new TypeError('Cannot specify both "ttl" and "expiresAt". Use one or the other.');
+    }
+
+    if (options?.ttl != null) {
+      return Date.now() + options.ttl;
+    }
+
+    if (options?.expiresAt != null) {
+      return options.expiresAt instanceof Date ? options.expiresAt.getTime() : options.expiresAt;
+    }
+
+    return null;
+  }
+
   function setItem<T = unknown>(key: string, value: T, options?: StorageOptions): void {
     const entry: StorageEntryEnvelope = {
       [ENTRY_MARKER]: true as const,
       version: 1, // Useful for future-proofing in case we need to change the storage format
       value,
-      expiry: options?.ttl != null ? Date.now() + options.ttl : null,
+      expiry: resolveExpiry(options),
     };
     storage.setItem(prefixedKey(key), serializer.stringify(entry));
   }
