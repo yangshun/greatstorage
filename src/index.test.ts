@@ -42,6 +42,7 @@ describe("greatstorage", () => {
     it("stores and retrieves null value", () => {
       storage.set("empty", null);
       expect(storage.get("empty")).toBeNull();
+      expect(storage.has("empty")).toBe(true);
     });
 
     it("returns null for non-existent key", () => {
@@ -93,12 +94,20 @@ describe("greatstorage", () => {
   });
 
   describe("clear", () => {
-    it("removes all keys", () => {
+    it("removes all greatstorage keys", () => {
       storage.set("a", 1);
       storage.set("b", 2);
       storage.clear();
       expect(storage.get("a")).toBeNull();
       expect(storage.get("b")).toBeNull();
+    });
+
+    it("does not remove non-greatstorage keys", () => {
+      mockStorage.setItem("external", "keep me");
+      storage.set("a", 1);
+      storage.clear();
+      expect(storage.get("a")).toBeNull();
+      expect(mockStorage.getItem("external")).toBe("keep me");
     });
   });
 
@@ -199,15 +208,27 @@ describe("greatstorage", () => {
     });
   });
 
-  describe("backwards compatibility", () => {
-    it("reads raw strings not set by greatstorage", () => {
+  describe("coexistence with non-greatstorage entries", () => {
+    it("returns null for raw strings not set by greatstorage", () => {
       mockStorage.setItem("raw", "just a string");
-      expect(storage.get("raw")).toBe("just a string");
+      expect(storage.get("raw")).toBeNull();
     });
 
-    it("reads JSON values not set by greatstorage", () => {
+    it("returns null for JSON values not set by greatstorage", () => {
       mockStorage.setItem("obj", JSON.stringify({ hello: "world" }));
-      expect(storage.get("obj")).toEqual({ hello: "world" });
+      expect(storage.get("obj")).toBeNull();
+    });
+
+    it("has returns false for non-greatstorage entries", () => {
+      mockStorage.setItem("external", "value");
+      expect(storage.has("external")).toBe(false);
+    });
+
+    it("does not interfere with non-greatstorage entries in underlying storage", () => {
+      mockStorage.setItem("external", "keep me");
+      storage.set("internal", "managed");
+      expect(mockStorage.getItem("external")).toBe("keep me");
+      expect(storage.get("internal")).toBe("managed");
     });
   });
 

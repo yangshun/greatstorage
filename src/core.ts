@@ -6,6 +6,7 @@ const ENTRY_MARKER = "__gs";
 interface StorageEntryEnvelope {
   [key: string]: unknown;
   value: unknown;
+  version: number;
   expiry: number | null;
 }
 
@@ -16,6 +17,7 @@ function isStorageEntry(data: unknown): data is StorageEntryEnvelope {
     ENTRY_MARKER in data &&
     (data as Record<string, unknown>)[ENTRY_MARKER] === true &&
     "value" in data &&
+    "version" in data &&
     "expiry" in data
   );
 }
@@ -40,20 +42,21 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
     try {
       entry = serializer.parse(raw);
     } catch {
-      // Not devalue format — try JSON.parse for backwards compatibility
+      // Unrecognized format — try JSON.parse for backwards compatibility
       try {
         entry = JSON.parse(raw);
       } catch {
-        // Raw string that isn't valid JSON — return as-is
-        return raw as T;
+        // Raw string that isn't valid JSON — return null to avoid confusion, since Storage always returns null for missing keys
+        return null;
       }
     }
 
     if (!isStorageEntry(entry)) {
-      return entry as T;
+      // Only return values that were created by greatstorage (has the entry marker). This allows greatstorage to coexist with other data in the same storage.
+      return null;
     }
 
-    if (entry.expiry !== null && Date.now() > entry.expiry) {
+    if (entry.expiry != null && Date.now() > entry.expiry) {
       storage.removeItem(prefixedKey(key));
       return null;
     }
@@ -62,8 +65,9 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
   }
 
   function set<T = unknown>(key: string, value: T, options?: StorageOptions): void {
-    const entry = {
+    const entry: StorageEntryEnvelope = {
       [ENTRY_MARKER]: true as const,
+      version: 1, // Useful for future-proofing in case we need to change the storage format
       value,
       expiry: options?.ttl != null ? Date.now() + options.ttl : null,
     };
@@ -75,16 +79,38 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
   }
 
   function clear(): void {
-    if (!prefix) {
-      storage.clear();
-      return;
-    }
     const keysToRemove: string[] = [];
 
     for (let i = 0; i < storage.length; i++) {
       const key = storage.key(i);
-      if (key !== null && key.startsWith(prefix)) {
+      if (key === null) {
+        continue;
+      }
+
+      if (prefix && !key.startsWith(prefix)) {
+        continue;
+      }
+
+      const raw = storage.getItem(key);
+      if (raw === null) {
+        continue;
+      }
+
+      // Only remove entries created by greatstorage (has the entry marker)
+      if (prefix && key.startsWith(prefix)) {
         keysToRemove.push(key);
+        continue;
+      }
+
+      try {
+        // Warning: could be slow if there are many keys that aren't greatstorage entries, since we have to attempt to parse each one.
+        // However, this is necessary to avoid accidentally deleting non-greatstorage data in the same storage.
+        const entry = serializer.parse(raw);
+        if (isStorageEntry(entry)) {
+          keysToRemove.push(key);
+        }
+      } catch {
+        // Not a greatstorage entry, leave it alone
       }
     }
 
@@ -94,7 +120,26 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
   }
 
   function has(key: string): boolean {
-    return get(key) !== null;
+    const raw = storage.getItem(prefixedKey(key));
+
+    if (raw === null) {
+      return false;
+    }
+
+    try {
+      const entry = serializer.parse(raw);
+      if (!isStorageEntry(entry)) {
+        return false;
+      }
+
+      if (entry.expiry != null && Date.now() > entry.expiry) {
+        return false;
+      }
+
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   return { get, set, remove, clear, has };
