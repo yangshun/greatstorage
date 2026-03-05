@@ -29,18 +29,18 @@ import { createStorage } from 'greatstorage';
 
 // Create an app-wide singleton instance.
 const storage = createStorage();
-export default storage;
+export storage;
 ```
 
 ```ts
-// my-app.js
+// app.js
 import { storage } from './lib/storage.js';
 
 storage.setItem('user', { name: 'Alice', age: 30 });
 storage.getItem('user'); // { name: 'Alice', age: 30 }
 ```
 
-### Store any type
+### Store anything
 
 Yes, `localStorage` can finally handle a `Set`, or any data type you throw at it. It only took the entire JavaScript ecosystem to get here.
 
@@ -103,25 +103,6 @@ storage.clear(); // remove all greatstorage entries
 storage.clearExpired(); // remove only expired entries
 ```
 
-### getOrInit
-
-Get the value if it exists, or writes to storage if it doesn't. Either way, you're getting something back.
-
-```ts
-const prefs = storage.getOrInit('prefs', () => ({
-  theme: 'light',
-  lang: 'en',
-}));
-```
-
-### updateItem
-
-Read-modify-write in one call. Three separate statements was apparently too much work even when AI is writing all the code.
-
-```ts
-storage.updateItem('count', (current) => (current ?? 0) + 1);
-```
-
 ### Type-safe access
 
 TypeScript can't read `localStorage` at compile time (yet), but you can at least pretend your data is typed.
@@ -180,6 +161,29 @@ import superjson from 'superjson';
 const storage = createStorage({
   serializer: { stringify: superjson.stringify, parse: superjson.parse },
 });
+```
+
+### Additional APIs
+
+Because `getItem` and `setItem` weren't enough, here are some bonus methods you didn't know you needed.
+
+#### `getOrInit()`
+
+Get the value if it exists, or writes to storage if it doesn't. Either way, you're getting something back.
+
+```ts
+const prefs = storage.getOrInit('prefs', () => ({
+  theme: 'light',
+  lang: 'en',
+}));
+```
+
+#### `updateItem()`
+
+Read-modify-write in one call. Three separate statements was apparently too much work even when AI is writing all the code.
+
+```ts
+storage.updateItem('count', (current) => (current ?? 0) + 1);
 ```
 
 ## API
