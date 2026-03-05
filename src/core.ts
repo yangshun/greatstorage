@@ -1,5 +1,11 @@
 import { stringify, parse } from 'devalue';
-import type { CreateStorageOptions, GreatStorage, Serializer, StorageOptions } from './types';
+import type {
+  CreateStorageOptions,
+  GetOptions,
+  GreatStorage,
+  Serializer,
+  StorageOptions,
+} from './types';
 
 const ENTRY_MARKER = '__gs';
 
@@ -32,7 +38,7 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
     return prefix + key;
   }
 
-  function get<T = unknown>(key: string): T | null {
+  function get<T = unknown>(key: string, options?: GetOptions<T>): T | null {
     const raw = storage.getItem(prefixedKey(key));
     if (raw === null) {
       return null;
@@ -59,6 +65,22 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
     if (entry.expiry != null && Date.now() > entry.expiry) {
       storage.removeItem(prefixedKey(key));
       return null;
+    }
+
+    if (options?.schema) {
+      const result = options.schema['~standard'].validate(entry.value);
+
+      if (result instanceof Promise) {
+        throw new TypeError(
+          'Schema validation must be synchronous. Async schemas are not supported.',
+        );
+      }
+
+      if ('issues' in result) {
+        return null;
+      }
+
+      return result.value as T;
     }
 
     return entry.value as T;

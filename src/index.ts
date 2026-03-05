@@ -1,3 +1,9 @@
 export { createStorage } from './core';
 export { createMemoryStorage } from './memory-storage';
-export type { CreateStorageOptions, GreatStorage, Serializer, StorageOptions } from './types';
+export type {
+  CreateStorageOptions,
+  GetOptions,
+  GreatStorage,
+  Serializer,
+  StorageOptions,
+} from './types';

@@ -340,6 +340,103 @@ describe('greatstorage', () => {
     });
   });
 
+  describe('schema validation', () => {
+    function createSchema<T>(validate: (value: unknown) => T | null) {
+      return {
+        '~standard': {
+          version: 1 as const,
+          vendor: 'test',
+          validate(value: unknown) {
+            const result = validate(value);
+            if (result !== null) {
+              return { value: result };
+            }
+            return { issues: [{ message: 'Validation failed' }] };
+          },
+        },
+      };
+    }
+
+    const stringSchema = createSchema((v) => (typeof v === 'string' ? v : null));
+
+    const numberSchema = createSchema((v) => (typeof v === 'number' ? v : null));
+
+    const objectSchema = createSchema((v) =>
+      typeof v === 'object' &&
+      v !== null &&
+      'name' in v &&
+      typeof (v as Record<string, unknown>).name === 'string'
+        ? (v as { name: string })
+        : null,
+    );
+
+    it('returns the value when schema validation passes', () => {
+      storage.set('name', 'Alice');
+      expect(storage.get('name', { schema: stringSchema })).toBe('Alice');
+    });
+
+    it('returns null when schema validation fails', () => {
+      storage.set('count', 42);
+      expect(storage.get('count', { schema: stringSchema })).toBeNull();
+    });
+
+    it('validates numbers', () => {
+      storage.set('count', 42);
+      expect(storage.get('count', { schema: numberSchema })).toBe(42);
+    });
+
+    it('returns null for number schema with string value', () => {
+      storage.set('name', 'Alice');
+      expect(storage.get('name', { schema: numberSchema })).toBeNull();
+    });
+
+    it('validates objects', () => {
+      storage.set('user', { name: 'Alice' });
+      expect(storage.get('user', { schema: objectSchema })).toEqual({
+        name: 'Alice',
+      });
+    });
+
+    it('returns null for invalid objects', () => {
+      storage.set('user', { age: 30 });
+      expect(storage.get('user', { schema: objectSchema })).toBeNull();
+    });
+
+    it('returns null for non-existent key regardless of schema', () => {
+      expect(storage.get('missing', { schema: stringSchema })).toBeNull();
+    });
+
+    it('returns the transformed value from schema validation', () => {
+      const coercingSchema = createSchema((v) => (typeof v === 'string' ? v.toUpperCase() : null));
+      storage.set('name', 'alice');
+      expect(storage.get('name', { schema: coercingSchema })).toBe('ALICE');
+    });
+
+    it('throws on async schema validation', () => {
+      const asyncSchema = {
+        '~standard': {
+          version: 1 as const,
+          vendor: 'test',
+          validate(_value: unknown) {
+            return Promise.resolve({ value: 'ok' });
+          },
+        },
+      };
+      storage.set('key', 'value');
+      expect(() => storage.get('key', { schema: asyncSchema })).toThrow(
+        'Schema validation must be synchronous',
+      );
+    });
+
+    it('respects TTL with schema validation', () => {
+      vi.useFakeTimers();
+      storage.set('temp', 'value', { ttl: 1000 });
+      vi.advanceTimersByTime(1001);
+      expect(storage.get('temp', { schema: stringSchema })).toBeNull();
+      vi.useRealTimers();
+    });
+  });
+
   describe('custom serializer', () => {
     it('uses a custom serializer for set and get', () => {
       const customSerializer = {

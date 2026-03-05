@@ -1,3 +1,5 @@
+import type { StandardSchemaV1 } from '@standard-schema/spec';
+
 export interface StorageOptions {
   /**
    * Time-to-live in milliseconds. If not set, the item never expires.
@@ -5,7 +7,16 @@ export interface StorageOptions {
   ttl?: number;
 }
 
+export interface GetOptions<T> {
+  /**
+   * A Standard Schema to validate the retrieved value against.
+   * If validation fails, `get` returns `null`.
+   */
+  schema: StandardSchemaV1<unknown, T>;
+}
+
 export interface GreatStorage {
+  get<T>(key: string, options: GetOptions<T>): T | null;
   get<T = unknown>(key: string): T | null;
   set<T = unknown>(key: string, value: T, options?: StorageOptions): void;
   remove(key: string): void;
