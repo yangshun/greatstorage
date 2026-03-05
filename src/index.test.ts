@@ -1,26 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createStorage } from './index';
-
-function createMockStorage(): Storage {
-  const store = new Map<string, string>();
-  return {
-    getItem: (key: string) => store.get(key) ?? null,
-    setItem: (key: string, value: string) => store.set(key, value),
-    removeItem: (key: string) => store.delete(key),
-    clear: () => store.clear(),
-    get length() {
-      return store.size;
-    },
-    key: (index: number) => [...store.keys()][index] ?? null,
-  };
-}
+import { createStorage, createMemoryStorage } from './index';
 
 describe('greatstorage', () => {
   let storage: ReturnType<typeof createStorage>;
   let mockStorage: Storage;
 
   beforeEach(() => {
-    mockStorage = createMockStorage();
+    mockStorage = createMemoryStorage();
     storage = createStorage({ storage: mockStorage });
     vi.restoreAllMocks();
   });
@@ -226,7 +212,7 @@ describe('greatstorage', () => {
     let nsStorage: ReturnType<typeof createStorage>;
 
     beforeEach(() => {
-      nsStorage = createStorage({ storage: mockStorage, prefix: 'app:' });
+      nsStorage = createStorage({ storage: mockStorage, prefix: 'app' });
     });
 
     it('stores keys with the prefix', () => {
@@ -241,7 +227,7 @@ describe('greatstorage', () => {
     });
 
     it('does not see keys from other namespaces', () => {
-      const otherStorage = createStorage({ storage: mockStorage, prefix: 'other:' });
+      const otherStorage = createStorage({ storage: mockStorage, prefix: 'other' });
       nsStorage.set('key', 'from-app');
       otherStorage.set('key', 'from-other');
       expect(nsStorage.get('key')).toBe('from-app');
@@ -279,6 +265,19 @@ describe('greatstorage', () => {
       expect(nsStorage.get('temp')).toBeNull();
       expect(mockStorage.getItem('app:temp')).toBeNull();
       vi.useRealTimers();
+    });
+
+    it('uses custom separator', () => {
+      const s = createStorage({ storage: mockStorage, prefix: 'ns', separator: '/' });
+      s.set('key', 'value');
+      expect(mockStorage.getItem('ns/key')).not.toBeNull();
+      expect(s.get('key')).toBe('value');
+    });
+
+    it('uses empty separator', () => {
+      const s = createStorage({ storage: mockStorage, prefix: 'ns', separator: '' });
+      s.set('key', 'value');
+      expect(mockStorage.getItem('nskey')).not.toBeNull();
     });
   });
 
