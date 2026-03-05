@@ -16,10 +16,10 @@ export interface GetOptions<T> {
 }
 
 export interface GreatStorage {
-  get<T>(key: string, options: GetOptions<T>): T | null;
-  get<T = unknown>(key: string): T | null;
-  set<T = unknown>(key: string, value: T, options?: StorageOptions): void;
-  remove(key: string): void;
+  getItem<T>(key: string, options: GetOptions<T>): T | null;
+  getItem<T = unknown>(key: string): T | null;
+  setItem<T = unknown>(key: string, value: T, options?: StorageOptions): void;
+  removeItem(key: string): void;
   clear(): void;
   clearExpired(): void;
   has(key: string): boolean;

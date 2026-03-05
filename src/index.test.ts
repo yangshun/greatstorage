@@ -13,100 +13,100 @@ describe('greatstorage', () => {
 
   describe('set and get', () => {
     it('stores and retrieves a string', () => {
-      storage.set('name', 'Alice');
-      expect(storage.get('name')).toBe('Alice');
+      storage.setItem('name', 'Alice');
+      expect(storage.getItem('name')).toBe('Alice');
     });
 
     it('stores and retrieves a number', () => {
-      storage.set('count', 42);
-      expect(storage.get('count')).toBe(42);
+      storage.setItem('count', 42);
+      expect(storage.getItem('count')).toBe(42);
     });
 
     it('stores and retrieves a boolean', () => {
-      storage.set('active', true);
-      expect(storage.get('active')).toBe(true);
+      storage.setItem('active', true);
+      expect(storage.getItem('active')).toBe(true);
     });
 
     it('stores and retrieves an object', () => {
       const obj = { foo: 'bar', nested: { a: 1 } };
-      storage.set('data', obj);
-      expect(storage.get('data')).toEqual(obj);
+      storage.setItem('data', obj);
+      expect(storage.getItem('data')).toEqual(obj);
     });
 
     it('stores and retrieves an array', () => {
       const arr = [1, 'two', { three: 3 }];
-      storage.set('list', arr);
-      expect(storage.get('list')).toEqual(arr);
+      storage.setItem('list', arr);
+      expect(storage.getItem('list')).toEqual(arr);
     });
 
     it('stores and retrieves null value', () => {
-      storage.set('empty', null);
-      expect(storage.get('empty')).toBeNull();
+      storage.setItem('empty', null);
+      expect(storage.getItem('empty')).toBeNull();
       expect(storage.has('empty')).toBe(true);
     });
 
     it('returns null for non-existent key', () => {
-      expect(storage.get('missing')).toBeNull();
+      expect(storage.getItem('missing')).toBeNull();
     });
   });
 
   describe('TTL', () => {
     it('returns value before TTL expires', () => {
       vi.useFakeTimers();
-      storage.set('temp', 'value', { ttl: 1000 });
+      storage.setItem('temp', 'value', { ttl: 1000 });
       vi.advanceTimersByTime(500);
-      expect(storage.get('temp')).toBe('value');
+      expect(storage.getItem('temp')).toBe('value');
       vi.useRealTimers();
     });
 
     it('returns null after TTL expires', () => {
       vi.useFakeTimers();
-      storage.set('temp', 'value', { ttl: 1000 });
+      storage.setItem('temp', 'value', { ttl: 1000 });
       vi.advanceTimersByTime(1001);
-      expect(storage.get('temp')).toBeNull();
+      expect(storage.getItem('temp')).toBeNull();
       vi.useRealTimers();
     });
 
     it('removes expired item from underlying storage on read', () => {
       vi.useFakeTimers();
-      storage.set('temp', 'value', { ttl: 1000 });
+      storage.setItem('temp', 'value', { ttl: 1000 });
       vi.advanceTimersByTime(1001);
-      storage.get('temp');
+      storage.getItem('temp');
       expect(mockStorage.getItem('temp')).toBeNull();
       vi.useRealTimers();
     });
 
     it('persists value when no TTL is set', () => {
       vi.useFakeTimers();
-      storage.set('permanent', 'value');
+      storage.setItem('permanent', 'value');
       vi.advanceTimersByTime(999_999_999);
-      expect(storage.get('permanent')).toBe('value');
+      expect(storage.getItem('permanent')).toBe('value');
       vi.useRealTimers();
     });
   });
 
   describe('remove', () => {
     it('removes an existing key', () => {
-      storage.set('key', 'value');
-      storage.remove('key');
-      expect(storage.get('key')).toBeNull();
+      storage.setItem('key', 'value');
+      storage.removeItem('key');
+      expect(storage.getItem('key')).toBeNull();
     });
   });
 
   describe('clear', () => {
     it('removes all greatstorage keys', () => {
-      storage.set('a', 1);
-      storage.set('b', 2);
+      storage.setItem('a', 1);
+      storage.setItem('b', 2);
       storage.clear();
-      expect(storage.get('a')).toBeNull();
-      expect(storage.get('b')).toBeNull();
+      expect(storage.getItem('a')).toBeNull();
+      expect(storage.getItem('b')).toBeNull();
     });
 
     it('does not remove non-greatstorage keys', () => {
       mockStorage.setItem('external', 'keep me');
-      storage.set('a', 1);
+      storage.setItem('a', 1);
       storage.clear();
-      expect(storage.get('a')).toBeNull();
+      expect(storage.getItem('a')).toBeNull();
       expect(mockStorage.getItem('external')).toBe('keep me');
     });
   });
@@ -114,21 +114,21 @@ describe('greatstorage', () => {
   describe('clearExpired', () => {
     it('removes expired entries', () => {
       vi.useFakeTimers();
-      storage.set('temp1', 'a', { ttl: 1000 });
-      storage.set('temp2', 'b', { ttl: 2000 });
-      storage.set('permanent', 'c');
+      storage.setItem('temp1', 'a', { ttl: 1000 });
+      storage.setItem('temp2', 'b', { ttl: 2000 });
+      storage.setItem('permanent', 'c');
       vi.advanceTimersByTime(1500);
       storage.clearExpired();
       expect(storage.has('temp1')).toBe(false);
       expect(storage.has('temp2')).toBe(true);
-      expect(storage.get('permanent')).toBe('c');
+      expect(storage.getItem('permanent')).toBe('c');
       vi.useRealTimers();
     });
 
     it('does not remove non-greatstorage entries', () => {
       vi.useFakeTimers();
       mockStorage.setItem('external', 'keep me');
-      storage.set('temp', 'a', { ttl: 1000 });
+      storage.setItem('temp', 'a', { ttl: 1000 });
       vi.advanceTimersByTime(1500);
       storage.clearExpired();
       expect(mockStorage.getItem('external')).toBe('keep me');
@@ -137,8 +137,8 @@ describe('greatstorage', () => {
 
     it('does nothing when no entries are expired', () => {
       vi.useFakeTimers();
-      storage.set('a', 'value', { ttl: 5000 });
-      storage.set('b', 'value');
+      storage.setItem('a', 'value', { ttl: 5000 });
+      storage.setItem('b', 'value');
       storage.clearExpired();
       expect(storage.has('a')).toBe(true);
       expect(storage.has('b')).toBe(true);
@@ -148,7 +148,7 @@ describe('greatstorage', () => {
 
   describe('has', () => {
     it('returns true for existing key', () => {
-      storage.set('key', 'value');
+      storage.setItem('key', 'value');
       expect(storage.has('key')).toBe(true);
     });
 
@@ -158,7 +158,7 @@ describe('greatstorage', () => {
 
     it('returns false for expired key', () => {
       vi.useFakeTimers();
-      storage.set('temp', 'value', { ttl: 1000 });
+      storage.setItem('temp', 'value', { ttl: 1000 });
       vi.advanceTimersByTime(1001);
       expect(storage.has('temp')).toBe(false);
       vi.useRealTimers();
@@ -168,8 +168,8 @@ describe('greatstorage', () => {
   describe('rich types', () => {
     it('stores and retrieves a Set', () => {
       const set = new Set([1, 2, 3]);
-      storage.set('set', set);
-      const result = storage.get<Set<number>>('set');
+      storage.setItem('set', set);
+      const result = storage.getItem<Set<number>>('set');
       expect(result).toBeInstanceOf(Set);
       expect(result).toEqual(set);
     });
@@ -179,32 +179,32 @@ describe('greatstorage', () => {
         ['a', 1],
         ['b', 2],
       ]);
-      storage.set('map', map);
-      const result = storage.get<Map<string, number>>('map');
+      storage.setItem('map', map);
+      const result = storage.getItem<Map<string, number>>('map');
       expect(result).toBeInstanceOf(Map);
       expect(result).toEqual(map);
     });
 
     it('stores and retrieves a Date', () => {
       const date = new Date('2025-01-15T12:00:00.000Z');
-      storage.set('date', date);
-      const result = storage.get<Date>('date');
+      storage.setItem('date', date);
+      const result = storage.getItem<Date>('date');
       expect(result).toBeInstanceOf(Date);
       expect(result!.toISOString()).toBe(date.toISOString());
     });
 
     it('stores and retrieves a RegExp', () => {
       const regex = /foo bar/gi;
-      storage.set('regex', regex);
-      const result = storage.get<RegExp>('regex');
+      storage.setItem('regex', regex);
+      const result = storage.getItem<RegExp>('regex');
       expect(result).toBeInstanceOf(RegExp);
       expect(result!.source).toBe(regex.source);
       expect(result!.flags).toBe(regex.flags);
     });
 
     it('stores and retrieves undefined', () => {
-      storage.set('undef', undefined);
-      expect(storage.get('undef')).toBeUndefined();
+      storage.setItem('undef', undefined);
+      expect(storage.getItem('undef')).toBeUndefined();
     });
 
     it('handles nested rich types in objects', () => {
@@ -212,8 +212,8 @@ describe('greatstorage', () => {
         tags: new Set(['a', 'b']),
         metadata: new Map([['created', new Date('2025-01-01')]]),
       };
-      storage.set('complex', data);
-      const result = storage.get<typeof data>('complex');
+      storage.setItem('complex', data);
+      const result = storage.getItem<typeof data>('complex');
       expect(result!.tags).toBeInstanceOf(Set);
       expect(result!.tags).toEqual(data.tags);
       expect(result!.metadata).toBeInstanceOf(Map);
@@ -221,37 +221,37 @@ describe('greatstorage', () => {
     });
 
     it('stores and retrieves BigInt', () => {
-      storage.set('big', BigInt('9007199254740993'));
-      expect(storage.get('big')).toBe(BigInt('9007199254740993'));
+      storage.setItem('big', BigInt('9007199254740993'));
+      expect(storage.getItem('big')).toBe(BigInt('9007199254740993'));
     });
 
     it('stores and retrieves NaN', () => {
-      storage.set('nan', NaN);
-      expect(storage.get<number>('nan')).toBeNaN();
+      storage.setItem('nan', NaN);
+      expect(storage.getItem<number>('nan')).toBeNaN();
     });
 
     it('stores and retrieves Infinity and -Infinity', () => {
-      storage.set('inf', Infinity);
-      storage.set('ninf', -Infinity);
-      expect(storage.get('inf')).toBe(Infinity);
-      expect(storage.get('ninf')).toBe(-Infinity);
+      storage.setItem('inf', Infinity);
+      storage.setItem('ninf', -Infinity);
+      expect(storage.getItem('inf')).toBe(Infinity);
+      expect(storage.getItem('ninf')).toBe(-Infinity);
     });
 
     it('stores and retrieves negative zero', () => {
-      storage.set('nz', -0);
-      expect(Object.is(storage.get('nz'), -0)).toBe(true);
+      storage.setItem('nz', -0);
+      expect(Object.is(storage.getItem('nz'), -0)).toBe(true);
     });
   });
 
   describe('coexistence with non-greatstorage entries', () => {
     it('returns null for raw strings not set by greatstorage', () => {
       mockStorage.setItem('raw', 'just a string');
-      expect(storage.get('raw')).toBeNull();
+      expect(storage.getItem('raw')).toBeNull();
     });
 
     it('returns null for JSON values not set by greatstorage', () => {
       mockStorage.setItem('obj', JSON.stringify({ hello: 'world' }));
-      expect(storage.get('obj')).toBeNull();
+      expect(storage.getItem('obj')).toBeNull();
     });
 
     it('has returns false for non-greatstorage entries', () => {
@@ -261,9 +261,9 @@ describe('greatstorage', () => {
 
     it('does not interfere with non-greatstorage entries in underlying storage', () => {
       mockStorage.setItem('external', 'keep me');
-      storage.set('internal', 'managed');
+      storage.setItem('internal', 'managed');
       expect(mockStorage.getItem('external')).toBe('keep me');
-      expect(storage.get('internal')).toBe('managed');
+      expect(storage.getItem('internal')).toBe('managed');
     });
   });
 
@@ -275,67 +275,67 @@ describe('greatstorage', () => {
     });
 
     it('stores keys with the prefix', () => {
-      nsStorage.set('key', 'value');
+      nsStorage.setItem('key', 'value');
       expect(mockStorage.getItem('app:key')).not.toBeNull();
       expect(mockStorage.getItem('key')).toBeNull();
     });
 
     it('retrieves values using unprefixed key', () => {
-      nsStorage.set('key', { a: 1 });
-      expect(nsStorage.get('key')).toEqual({ a: 1 });
+      nsStorage.setItem('key', { a: 1 });
+      expect(nsStorage.getItem('key')).toEqual({ a: 1 });
     });
 
     it('does not see keys from other namespaces', () => {
       const otherStorage = createStorage({ storage: mockStorage, prefix: 'other' });
-      nsStorage.set('key', 'from-app');
-      otherStorage.set('key', 'from-other');
-      expect(nsStorage.get('key')).toBe('from-app');
-      expect(otherStorage.get('key')).toBe('from-other');
+      nsStorage.setItem('key', 'from-app');
+      otherStorage.setItem('key', 'from-other');
+      expect(nsStorage.getItem('key')).toBe('from-app');
+      expect(otherStorage.getItem('key')).toBe('from-other');
     });
 
     it('remove only removes the prefixed key', () => {
       mockStorage.setItem('key', '"unprefixed"');
-      nsStorage.set('key', 'prefixed');
-      nsStorage.remove('key');
-      expect(nsStorage.get('key')).toBeNull();
+      nsStorage.setItem('key', 'prefixed');
+      nsStorage.removeItem('key');
+      expect(nsStorage.getItem('key')).toBeNull();
       expect(mockStorage.getItem('key')).toBe('"unprefixed"');
     });
 
     it('clear only removes keys with the prefix', () => {
       mockStorage.setItem('other', '"keep me"');
-      nsStorage.set('a', 1);
-      nsStorage.set('b', 2);
+      nsStorage.setItem('a', 1);
+      nsStorage.setItem('b', 2);
       nsStorage.clear();
-      expect(nsStorage.get('a')).toBeNull();
-      expect(nsStorage.get('b')).toBeNull();
+      expect(nsStorage.getItem('a')).toBeNull();
+      expect(nsStorage.getItem('b')).toBeNull();
       expect(mockStorage.getItem('other')).toBe('"keep me"');
     });
 
     it('has respects the prefix', () => {
-      nsStorage.set('key', 'value');
+      nsStorage.setItem('key', 'value');
       expect(nsStorage.has('key')).toBe(true);
       expect(storage.has('key')).toBe(false);
     });
 
     it('TTL works with prefix', () => {
       vi.useFakeTimers();
-      nsStorage.set('temp', 'value', { ttl: 1000 });
+      nsStorage.setItem('temp', 'value', { ttl: 1000 });
       vi.advanceTimersByTime(1001);
-      expect(nsStorage.get('temp')).toBeNull();
+      expect(nsStorage.getItem('temp')).toBeNull();
       expect(mockStorage.getItem('app:temp')).toBeNull();
       vi.useRealTimers();
     });
 
     it('uses custom separator', () => {
       const s = createStorage({ storage: mockStorage, prefix: 'ns', separator: '/' });
-      s.set('key', 'value');
+      s.setItem('key', 'value');
       expect(mockStorage.getItem('ns/key')).not.toBeNull();
-      expect(s.get('key')).toBe('value');
+      expect(s.getItem('key')).toBe('value');
     });
 
     it('uses empty separator', () => {
       const s = createStorage({ storage: mockStorage, prefix: 'ns', separator: '' });
-      s.set('key', 'value');
+      s.setItem('key', 'value');
       expect(mockStorage.getItem('nskey')).not.toBeNull();
     });
   });
@@ -371,45 +371,45 @@ describe('greatstorage', () => {
     );
 
     it('returns the value when schema validation passes', () => {
-      storage.set('name', 'Alice');
-      expect(storage.get('name', { schema: stringSchema })).toBe('Alice');
+      storage.setItem('name', 'Alice');
+      expect(storage.getItem('name', { schema: stringSchema })).toBe('Alice');
     });
 
     it('returns null when schema validation fails', () => {
-      storage.set('count', 42);
-      expect(storage.get('count', { schema: stringSchema })).toBeNull();
+      storage.setItem('count', 42);
+      expect(storage.getItem('count', { schema: stringSchema })).toBeNull();
     });
 
     it('validates numbers', () => {
-      storage.set('count', 42);
-      expect(storage.get('count', { schema: numberSchema })).toBe(42);
+      storage.setItem('count', 42);
+      expect(storage.getItem('count', { schema: numberSchema })).toBe(42);
     });
 
     it('returns null for number schema with string value', () => {
-      storage.set('name', 'Alice');
-      expect(storage.get('name', { schema: numberSchema })).toBeNull();
+      storage.setItem('name', 'Alice');
+      expect(storage.getItem('name', { schema: numberSchema })).toBeNull();
     });
 
     it('validates objects', () => {
-      storage.set('user', { name: 'Alice' });
-      expect(storage.get('user', { schema: objectSchema })).toEqual({
+      storage.setItem('user', { name: 'Alice' });
+      expect(storage.getItem('user', { schema: objectSchema })).toEqual({
         name: 'Alice',
       });
     });
 
     it('returns null for invalid objects', () => {
-      storage.set('user', { age: 30 });
-      expect(storage.get('user', { schema: objectSchema })).toBeNull();
+      storage.setItem('user', { age: 30 });
+      expect(storage.getItem('user', { schema: objectSchema })).toBeNull();
     });
 
     it('returns null for non-existent key regardless of schema', () => {
-      expect(storage.get('missing', { schema: stringSchema })).toBeNull();
+      expect(storage.getItem('missing', { schema: stringSchema })).toBeNull();
     });
 
     it('returns the transformed value from schema validation', () => {
       const coercingSchema = createSchema((v) => (typeof v === 'string' ? v.toUpperCase() : null));
-      storage.set('name', 'alice');
-      expect(storage.get('name', { schema: coercingSchema })).toBe('ALICE');
+      storage.setItem('name', 'alice');
+      expect(storage.getItem('name', { schema: coercingSchema })).toBe('ALICE');
     });
 
     it('throws on async schema validation', () => {
@@ -422,17 +422,17 @@ describe('greatstorage', () => {
           },
         },
       };
-      storage.set('key', 'value');
-      expect(() => storage.get('key', { schema: asyncSchema })).toThrow(
+      storage.setItem('key', 'value');
+      expect(() => storage.getItem('key', { schema: asyncSchema })).toThrow(
         'Schema validation must be synchronous',
       );
     });
 
     it('respects TTL with schema validation', () => {
       vi.useFakeTimers();
-      storage.set('temp', 'value', { ttl: 1000 });
+      storage.setItem('temp', 'value', { ttl: 1000 });
       vi.advanceTimersByTime(1001);
-      expect(storage.get('temp', { schema: stringSchema })).toBeNull();
+      expect(storage.getItem('temp', { schema: stringSchema })).toBeNull();
       vi.useRealTimers();
     });
   });
@@ -447,8 +447,8 @@ describe('greatstorage', () => {
         storage: mockStorage,
         serializer: customSerializer,
       });
-      customStorage.set('key', { hello: 'world' });
-      expect(customStorage.get('key')).toEqual({ hello: 'world' });
+      customStorage.setItem('key', { hello: 'world' });
+      expect(customStorage.getItem('key')).toEqual({ hello: 'world' });
     });
 
     it('custom serializer is used for writing', () => {
@@ -464,7 +464,7 @@ describe('greatstorage', () => {
         storage: mockStorage,
         serializer: customSerializer,
       });
-      customStorage.set('key', 'value');
+      customStorage.setItem('key', 'value');
       expect(calls.length).toBe(1);
     });
 
@@ -478,11 +478,11 @@ describe('greatstorage', () => {
         storage: mockStorage,
         serializer: customSerializer,
       });
-      customStorage.set('temp', 'value', { ttl: 1000 });
+      customStorage.setItem('temp', 'value', { ttl: 1000 });
       vi.advanceTimersByTime(500);
-      expect(customStorage.get('temp')).toBe('value');
+      expect(customStorage.getItem('temp')).toBe('value');
       vi.advanceTimersByTime(501);
-      expect(customStorage.get('temp')).toBeNull();
+      expect(customStorage.getItem('temp')).toBeNull();
       vi.useRealTimers();
     });
   });

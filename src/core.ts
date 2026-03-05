@@ -38,7 +38,7 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
     return prefix + key;
   }
 
-  function get<T = unknown>(key: string, options?: GetOptions<T>): T | null {
+  function getItem<T = unknown>(key: string, options?: GetOptions<T>): T | null {
     const raw = storage.getItem(prefixedKey(key));
     if (raw === null) {
       return null;
@@ -86,7 +86,7 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
     return entry.value as T;
   }
 
-  function set<T = unknown>(key: string, value: T, options?: StorageOptions): void {
+  function setItem<T = unknown>(key: string, value: T, options?: StorageOptions): void {
     const entry: StorageEntryEnvelope = {
       [ENTRY_MARKER]: true as const,
       version: 1, // Useful for future-proofing in case we need to change the storage format
@@ -96,7 +96,7 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
     storage.setItem(prefixedKey(key), serializer.stringify(entry));
   }
 
-  function remove(key: string): void {
+  function removeItem(key: string): void {
     storage.removeItem(prefixedKey(key));
   }
 
@@ -164,5 +164,5 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
     }
   }
 
-  return { get, set, remove, clear, clearExpired, has };
+  return { getItem, setItem, removeItem, clear, clearExpired, has };
 }
