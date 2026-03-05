@@ -1,6 +1,6 @@
 {
   "name": "greatstorage",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Gives localStorage superpowers. Handles serialization of rich types, key expiration, namespacing, and schema validation",
   "keywords": [
     "expiration",
@@ -32,6 +32,7 @@
   "scripts": {
     "check": "pnpm format && pnpm lint && pnpm test",
     "build": "tsdown",
+    "prepublishOnly": "pnpm check && pnpm build",
     "format": "oxfmt",
     "lint": "oxlint",
     "tc": "tsc --noEmit",
