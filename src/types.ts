@@ -16,6 +16,7 @@ export interface GetOptions<T> {
 }
 
 export interface GreatStorage {
+  readonly length: number;
   getItem<T>(key: string, options: GetOptions<T>): T | null;
   getItem<T = unknown>(key: string): T | null;
   setItem<T = unknown>(key: string, value: T, options?: StorageOptions): void;

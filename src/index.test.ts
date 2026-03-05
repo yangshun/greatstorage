@@ -165,6 +165,56 @@ describe('greatstorage', () => {
     });
   });
 
+  describe('length', () => {
+    it('returns 0 when empty', () => {
+      expect(storage.length).toBe(0);
+    });
+
+    it('returns the number of stored entries', () => {
+      storage.setItem('a', 1);
+      storage.setItem('b', 2);
+      storage.setItem('c', 3);
+      expect(storage.length).toBe(3);
+    });
+
+    it('decreases after removing an entry', () => {
+      storage.setItem('a', 1);
+      storage.setItem('b', 2);
+      storage.removeItem('a');
+      expect(storage.length).toBe(1);
+    });
+
+    it('returns 0 after clear', () => {
+      storage.setItem('a', 1);
+      storage.setItem('b', 2);
+      storage.clear();
+      expect(storage.length).toBe(0);
+    });
+
+    it('excludes expired entries', () => {
+      vi.useFakeTimers();
+      storage.setItem('temp', 'a', { ttl: 1000 });
+      storage.setItem('permanent', 'b');
+      vi.advanceTimersByTime(1001);
+      expect(storage.length).toBe(1);
+      vi.useRealTimers();
+    });
+
+    it('does not count non-greatstorage entries', () => {
+      mockStorage.setItem('external', 'value');
+      storage.setItem('internal', 'value');
+      expect(storage.length).toBe(1);
+    });
+
+    it('only counts entries with the matching prefix', () => {
+      const nsStorage = createStorage({ storage: mockStorage, prefix: 'app' });
+      nsStorage.setItem('a', 1);
+      nsStorage.setItem('b', 2);
+      storage.setItem('c', 3);
+      expect(nsStorage.length).toBe(2);
+    });
+  });
+
   describe('rich types', () => {
     it('stores and retrieves a Set', () => {
       const set = new Set([1, 2, 3]);
