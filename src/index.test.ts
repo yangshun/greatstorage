@@ -295,6 +295,58 @@ describe('greatstorage', () => {
     });
   });
 
+  describe('getOrInit', () => {
+    it('returns factory value when key is missing', () => {
+      const result = storage.getOrInit('key', () => 'created');
+      expect(result).toBe('created');
+    });
+
+    it('persists the factory value to storage', () => {
+      storage.getOrInit('key', () => 'created');
+      expect(storage.getItem('key')).toBe('created');
+    });
+
+    it('returns existing value without calling factory', () => {
+      storage.setItem('key', 'existing');
+      const factory = vi.fn(() => 'new');
+      const result = storage.getOrInit('key', factory);
+      expect(result).toBe('existing');
+      expect(factory).not.toHaveBeenCalled();
+    });
+
+    it('calls factory when value has expired', () => {
+      vi.useFakeTimers();
+      storage.setItem('key', 'old', { ttl: 1000 });
+      vi.advanceTimersByTime(1001);
+      const result = storage.getOrInit('key', () => 'refreshed');
+      expect(result).toBe('refreshed');
+      expect(storage.getItem('key')).toBe('refreshed');
+      vi.useRealTimers();
+    });
+
+    it('applies TTL to the factory value', () => {
+      vi.useFakeTimers();
+      storage.getOrInit('key', () => 'value', { ttl: 1000 });
+      vi.advanceTimersByTime(1001);
+      expect(storage.getItem('key')).toBeNull();
+      vi.useRealTimers();
+    });
+
+    it('applies expiresAt to the factory value', () => {
+      vi.useFakeTimers({ now: 1000 });
+      storage.getOrInit('key', () => 'value', { expiresAt: 2000 });
+      vi.advanceTimersByTime(1001);
+      expect(storage.getItem('key')).toBeNull();
+      vi.useRealTimers();
+    });
+
+    it('works with complex types', () => {
+      const result = storage.getOrInit('set', () => new Set([1, 2, 3]));
+      expect(result).toBeInstanceOf(Set);
+      expect(result).toEqual(new Set([1, 2, 3]));
+    });
+  });
+
   describe('rich types', () => {
     it('stores and retrieves a Set', () => {
       const set = new Set([1, 2, 3]);

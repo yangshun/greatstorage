@@ -29,6 +29,7 @@ export interface GreatStorage {
   setItem<T = unknown>(key: string, value: T, options?: StorageOptions): void;
   removeItem(key: string): void;
   key(index: number): string | null;
+  getOrInit<T>(key: string, factory: () => T, options?: StorageOptions): T;
   clear(): void;
   clearExpired(): void;
   has(key: string): boolean;

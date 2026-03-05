@@ -112,6 +112,17 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
     storage.setItem(prefixedKey(key), serializer.stringify(entry));
   }
 
+  function getOrInit<T>(key: string, factory: () => T, options?: StorageOptions): T {
+    const existing = getItem<T>(key);
+    if (existing !== null) {
+      return existing;
+    }
+
+    const value = factory();
+    setItem(key, value, options);
+    return value;
+  }
+
   function removeItem(key: string): void {
     storage.removeItem(prefixedKey(key));
   }
@@ -213,6 +224,7 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
     },
     getItem,
     setItem,
+    getOrInit,
     removeItem,
     key,
     clear,
