@@ -116,7 +116,7 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
     storage.removeItem(prefixedKey(key));
   }
 
-  function forEachEntry(callback: (key: string, entry: StorageEntryEnvelope) => void): void {
+  function* entries(): Generator<[key: string, entry: StorageEntryEnvelope]> {
     for (let i = 0; i < storage.length; i++) {
       const key = storage.key(i);
       if (key === null) {
@@ -135,7 +135,7 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
       try {
         const entry = serializer.parse(raw);
         if (isStorageEntry(entry)) {
-          callback(key, entry);
+          yield [key, entry];
         }
       } catch {
         // Not a greatstorage entry, skip
@@ -146,11 +146,11 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
   function removeEntries(predicate: (entry: StorageEntryEnvelope) => boolean): void {
     const keysToRemove: string[] = [];
 
-    forEachEntry((key, entry) => {
+    for (const [key, entry] of entries()) {
       if (predicate(entry)) {
         keysToRemove.push(key);
       }
-    });
+    }
 
     for (const key of keysToRemove) {
       storage.removeItem(key);
@@ -191,11 +191,11 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
   return {
     get length() {
       let count = 0;
-      forEachEntry((_key, entry) => {
+      for (const [, entry] of entries()) {
         if (entry.expiry == null || Date.now() <= entry.expiry) {
           count++;
         }
-      });
+      }
       return count;
     },
     getItem,
