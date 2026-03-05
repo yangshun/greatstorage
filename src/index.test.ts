@@ -111,6 +111,41 @@ describe("greatstorage", () => {
     });
   });
 
+  describe("clearExpired", () => {
+    it("removes expired entries", () => {
+      vi.useFakeTimers();
+      storage.set("temp1", "a", { ttl: 1000 });
+      storage.set("temp2", "b", { ttl: 2000 });
+      storage.set("permanent", "c");
+      vi.advanceTimersByTime(1500);
+      storage.clearExpired();
+      expect(storage.has("temp1")).toBe(false);
+      expect(storage.has("temp2")).toBe(true);
+      expect(storage.get("permanent")).toBe("c");
+      vi.useRealTimers();
+    });
+
+    it("does not remove non-greatstorage entries", () => {
+      vi.useFakeTimers();
+      mockStorage.setItem("external", "keep me");
+      storage.set("temp", "a", { ttl: 1000 });
+      vi.advanceTimersByTime(1500);
+      storage.clearExpired();
+      expect(mockStorage.getItem("external")).toBe("keep me");
+      vi.useRealTimers();
+    });
+
+    it("does nothing when no entries are expired", () => {
+      vi.useFakeTimers();
+      storage.set("a", "value", { ttl: 5000 });
+      storage.set("b", "value");
+      storage.clearExpired();
+      expect(storage.has("a")).toBe(true);
+      expect(storage.has("b")).toBe(true);
+      vi.useRealTimers();
+    });
+  });
+
   describe("has", () => {
     it("returns true for existing key", () => {
       storage.set("key", "value");

@@ -78,7 +78,7 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
     storage.removeItem(prefixedKey(key));
   }
 
-  function clear(): void {
+  function removeEntries(predicate: (entry: StorageEntryEnvelope) => boolean): void {
     const keysToRemove: string[] = [];
 
     for (let i = 0; i < storage.length; i++) {
@@ -96,27 +96,27 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
         continue;
       }
 
-      // Only remove entries created by greatstorage (has the entry marker)
-      if (prefix && key.startsWith(prefix)) {
-        keysToRemove.push(key);
-        continue;
-      }
-
       try {
-        // Warning: could be slow if there are many keys that aren't greatstorage entries, since we have to attempt to parse each one.
-        // However, this is necessary to avoid accidentally deleting non-greatstorage data in the same storage.
         const entry = serializer.parse(raw);
-        if (isStorageEntry(entry)) {
+        if (isStorageEntry(entry) && predicate(entry)) {
           keysToRemove.push(key);
         }
       } catch {
-        // Not a greatstorage entry, leave it alone
+        // Not a greatstorage entry, skip
       }
     }
 
     for (const key of keysToRemove) {
       storage.removeItem(key);
     }
+  }
+
+  function clear(): void {
+    removeEntries(() => true);
+  }
+
+  function clearExpired(): void {
+    removeEntries((entry) => entry.expiry != null && Date.now() > entry.expiry);
   }
 
   function has(key: string): boolean {
@@ -142,5 +142,5 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
     }
   }
 
-  return { get, set, remove, clear, has };
+  return { get, set, remove, clear, clearExpired, has };
 }

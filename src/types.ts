@@ -10,6 +10,7 @@ export interface GreatStorage {
   set<T = unknown>(key: string, value: T, options?: StorageOptions): void;
   remove(key: string): void;
   clear(): void;
+  clearExpired(): void;
   has(key: string): boolean;
 }
 
