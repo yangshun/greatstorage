@@ -188,6 +188,19 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
     }
   }
 
+  function key(index: number): string | null {
+    let count = 0;
+    for (const [rawKey, entry] of entries()) {
+      if (entry.expiry == null || Date.now() <= entry.expiry) {
+        if (count === index) {
+          return prefix ? rawKey.slice(prefix.length) : rawKey;
+        }
+        count++;
+      }
+    }
+    return null;
+  }
+
   return {
     get length() {
       let count = 0;
@@ -201,6 +214,7 @@ export function createStorage(options: CreateStorageOptions = {}): GreatStorage 
     getItem,
     setItem,
     removeItem,
+    key,
     clear,
     clearExpired,
     has,

@@ -253,6 +253,48 @@ describe('greatstorage', () => {
     });
   });
 
+  describe('key', () => {
+    it('returns the key at the given index', () => {
+      storage.setItem('a', 1);
+      storage.setItem('b', 2);
+      expect(storage.key(0)).toBe('a');
+      expect(storage.key(1)).toBe('b');
+    });
+
+    it('returns null for out-of-bounds index', () => {
+      storage.setItem('a', 1);
+      expect(storage.key(1)).toBeNull();
+      expect(storage.key(-1)).toBeNull();
+    });
+
+    it('returns null when storage is empty', () => {
+      expect(storage.key(0)).toBeNull();
+    });
+
+    it('skips expired entries', () => {
+      vi.useFakeTimers();
+      storage.setItem('expired', 'x', { ttl: 100 });
+      storage.setItem('valid', 'y');
+      vi.advanceTimersByTime(200);
+      expect(storage.key(0)).toBe('valid');
+      expect(storage.key(1)).toBeNull();
+      vi.useRealTimers();
+    });
+
+    it('returns unprefixed keys for namespaced storage', () => {
+      const nsStorage = createStorage({ storage: mockStorage, prefix: 'app' });
+      nsStorage.setItem('foo', 1);
+      expect(nsStorage.key(0)).toBe('foo');
+    });
+
+    it('skips non-greatstorage entries', () => {
+      mockStorage.setItem('external', 'raw');
+      storage.setItem('internal', 'value');
+      expect(storage.key(0)).toBe('internal');
+      expect(storage.key(1)).toBeNull();
+    });
+  });
+
   describe('rich types', () => {
     it('stores and retrieves a Set', () => {
       const set = new Set([1, 2, 3]);
