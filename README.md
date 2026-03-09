@@ -4,10 +4,10 @@ Gives `localStorage` superpowers. Handles serialization of rich types, key expir
 
 ## Features
 
-- **Store anything**: Stores `Set`, `Map`, `Date`, `RegExp`, `BigInt`, circular references, and more using [devalue](https://github.com/Rich-Harris/devalue)
+- **Store anything**: Stores `Set`, `Map`, `Date`, `RegExp`, `BigInt`, circular references, and more using [devalue](https://github.com/sveltejs/devalue)
 - **TTL / expiration**: Set a `ttl` in milliseconds or an absolute `expiresAt` timestamp. Expired items are cleaned up lazily on read
 - **Namespacing**: Isolate keys with a configurable `prefix` and `separator`
-- **Schema validation**: Validate retrieved values against any [Standard Schema](https://github.com/standard-schema/standard-schema) (Zod, Valibot, ArkType, etc.)
+- **Schema validation**: Validate retrieved values against any [Standard Schema](https://github.com/standard-schema/standard-schema) with synchronous validation (Zod, Valibot, ArkType, etc.)
 - **Use any `Storage` backend**: Works with `localStorage`, `sessionStorage`, or any `Storage`-compatible implementation. An in-memory storage implementation is provided as well
 - **ESM and CJS**: Tree-shakeable dual builds with full TypeScript types
 
@@ -24,17 +24,16 @@ npm install greatstorage
 Store and retrieve objects without the `JSON.stringify` dance. You're welcome.
 
 ```ts
-// lib/storage.js
+// lib/storage.ts
 import { createStorage } from 'greatstorage';
 
 // Create an app-wide singleton instance.
-const storage = createStorage();
-export storage;
+export const storage = createStorage();
 ```
 
 ```ts
-// app.js
-import { storage } from './lib/storage.js';
+// app.ts
+import { storage } from './lib/storage';
 
 storage.setItem('user', { name: 'Alice', age: 30 });
 storage.getItem('user'); // { name: 'Alice', age: 30 }
@@ -128,7 +127,7 @@ However, the true safe way is to validate with a [schema during read](#schema-va
 
 ### Schema validation
 
-Trust no one — especially not browser storage is open to tampering by users. Validate with any libraries that support [Standard Schema](https://github.com/standard-schema/standard-schema).
+Trust no one — especially since browser storage is open to tampering by users. Validate with any libraries that support [Standard Schema](https://github.com/standard-schema/standard-schema), as long as validation is synchronous.
 
 ```ts
 import { z } from 'zod';
@@ -205,7 +204,7 @@ Returns a `GreatStorage` instance with the following methods:
 
 Retrieves and deserializes a value. Returns `null` if the key is missing, expired, or fails schema validation.
 
-Pass `{ schema }` to validate the value against a Standard Schema.
+Pass `{ schema }` to validate the value against a Standard Schema. Async schemas are not supported.
 
 ### `setItem(key, value, options?)`
 
