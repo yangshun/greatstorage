@@ -5,7 +5,7 @@ Gives `localStorage` superpowers. Handles serialization of rich types, key expir
 ## Features
 
 - **Store anything**: Stores `Set`, `Map`, `Date`, `RegExp`, `BigInt`, circular references, and more using [devalue](https://github.com/sveltejs/devalue)
-- **TTL / expiration**: Set a `ttl` in milliseconds or an absolute `expiresAt` timestamp. Expired items are cleaned up lazily on read
+- **TTL / expiration**: Set a `ttl` in milliseconds or an absolute `expiresAt` timestamp. Expired items are treated as missing, can be removed on `getItem()`, and can be swept with `clearExpired()`
 - **Namespacing**: Isolate keys with a configurable `prefix` and `separator`
 - **Schema validation**: Validate retrieved values against any [Standard Schema](https://github.com/standard-schema/standard-schema) with synchronous validation (Zod, Valibot, ArkType, etc.)
 - **Use any `Storage` backend**: Works with `localStorage`, `sessionStorage`, or any `Storage`-compatible implementation. An in-memory storage implementation is provided as well
@@ -60,7 +60,7 @@ storage.getItem('date'); // Date 2025-01-01T00:00:00.000Z
 
 Store data temporarily. Like Snapchat, but for your storage keys.
 
-**Note**: The data is not immediately removed after expiry timing, it's only removed on next access.
+**Note**: Expired data behaves like a missing key. `getItem()` removes expired entries on read, while `has()`, `key()`, and `length` simply ignore them. Use `clearExpired()` to proactively sweep them.
 
 ```ts
 // Expires in 60 seconds
@@ -187,7 +187,7 @@ storage.updateItem('count', (current) => (current ?? 0) + 1);
 
 ## API
 
-### `createStorage(options?)`
+### `createStorage(options?: CreateStorageOptions): GreatStorage`
 
 Creates a new storage instance. All options are optional.
 
@@ -200,13 +200,21 @@ Creates a new storage instance. All options are optional.
 
 Returns a `GreatStorage` instance with the following methods:
 
-### `getItem<T>(key, options?)`
+### `getItem<T = unknown>(key: string): T | null`
 
-Retrieves and deserializes a value. Returns `null` if the key is missing, expired, or fails schema validation.
+Retrieves and deserializes a value. Returns `null` if the key is missing or expired. If the entry is expired, `getItem()` removes it from storage.
 
-Pass `{ schema }` to validate the value against a Standard Schema. Async schemas are not supported.
+### `getItem<T>(key: string, options: { schema: StandardSchema }): T | null`
 
-### `setItem(key, value, options?)`
+Retrieves and deserializes a value. Returns `null` if the key is missing, expired, or fails schema validation. If the entry is expired, `getItem()` removes it from storage.
+
+Options:
+
+| Option   | Type             | Description                                                     |
+| -------- | ---------------- | --------------------------------------------------------------- |
+| `schema` | `StandardSchema` | Validate the value during read. Async schemas are not supported |
+
+### `setItem<T = unknown>(key: string, value: T, options?: StorageOptions): void`
 
 Serializes and stores a value. Options:
 
@@ -217,39 +225,61 @@ Serializes and stores a value. Options:
 
 `ttl` and `expiresAt` cannot be used together.
 
-### `getOrInit<T>(key, factory, options?)`
+### `getOrInit<T>(key: string, factory: () => T, options?: StorageOptions): T`
 
-Returns the existing value for `key`, or calls `factory()` to create, store, and return a new value. Accepts the same `options` as `setItem`.
+Returns the existing value for `key`, or calls `factory()` to create, store, and return a new value.
 
-### `updateItem<T>(key, updater, options?)`
+Options:
 
-Calls `updater(currentValue)` where `currentValue` is the existing value (or `null`), stores the result, and returns it. Accepts the same `options` as `setItem`.
+| Option      | Type             | Description                  |
+| ----------- | ---------------- | ---------------------------- |
+| `ttl`       | `number`         | Time-to-live in milliseconds |
+| `expiresAt` | `Date \| number` | Absolute expiration time     |
 
-### `removeItem(key)`
+`ttl` and `expiresAt` cannot be used together.
 
-Removes a single key.
+### `updateItem<T = unknown>(key: string, updater: (value: T | null) => T, options?: StorageOptions): T`
 
-### `has(key)`
+Calls `updater(currentValue)` where `currentValue` is the existing value (or `null`), stores the result, and returns it.
 
-Returns `true` if the key exists and is not expired.
+Options:
 
-### `key(index)`
+| Option      | Type             | Description                  |
+| ----------- | ---------------- | ---------------------------- |
+| `ttl`       | `number`         | Time-to-live in milliseconds |
+| `expiresAt` | `Date \| number` | Absolute expiration time     |
 
-Returns the key at the given index among non-expired entries, or `null`.
+`ttl` and `expiresAt` cannot be used together.
 
-### `clear()`
+### `removeItem(key: string): void`
+
+Removes a single key from the current namespace.
+
+### `has(key: string): boolean`
+
+Returns `true` if the key exists and is not expired. Expired entries are treated as missing and are not removed by `has()`.
+
+### `key(index: number): string | null`
+
+Returns the key at the given zero-based index among non-expired entries, or `null` if the index is out of bounds. Expired entries are skipped but not removed.
+
+### `clear(): void`
 
 Removes all greatstorage entries in the current namespace.
 
-### `clearExpired()`
+Entries outside the namespace and values not written by greatstorage are left untouched.
+
+### `clearExpired(): void`
 
 Removes only expired entries in the current namespace.
 
-### `length`
+### `length: number`
 
 The number of non-expired entries in the current namespace.
 
-### `createMemoryStorage()`
+Expired entries are excluded from the count but not removed unless read via `getItem()` or swept with `clearExpired()`.
+
+### `createMemoryStorage(): Storage`
 
 Returns an in-memory `Storage` implementation. Useful for testing or server-side usage.
 
