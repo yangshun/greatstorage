@@ -98,7 +98,7 @@ storage.has('user'); // true
 storage.removeItem('user');
 storage.has('user'); // false
 
-storage.clear(); // remove all greatstorage entries
+storage.clear(); // remove all entries written by `greatstorage`
 storage.clearExpired(); // remove only expired entries
 ```
 
@@ -265,9 +265,9 @@ Returns the key at the given zero-based index among non-expired entries, or `nul
 
 ### `clear(): void`
 
-Removes all greatstorage entries in the current namespace.
+Removes all entries written by `greatstorage` in the current namespace.
 
-Entries outside the namespace and values not written by greatstorage are left untouched.
+Entries outside the namespace and values not written by `greatstorage` are left untouched.
 
 ### `clearExpired(): void`
 
