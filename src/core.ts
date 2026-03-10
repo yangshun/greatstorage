@@ -1,11 +1,9 @@
-import type {
-  CoreStorageOptions,
-  GetOptions,
-  GreatStorage,
-  StorageOptions,
-} from './types';
+import type { CoreStorageOptions, GetOptions, GreatStorage, StorageOptions } from './types';
+
+declare const process: { env: { NODE_ENV?: string } };
 
 const ENTRY_MARKER = '__gs';
+const warned = process.env.NODE_ENV !== 'production' ? new Set<string>() : undefined;
 
 interface StorageEntryEnvelope {
   [key: string]: unknown;
@@ -60,7 +58,8 @@ export function createStorage(options: CoreStorageOptions): GreatStorage {
     }
 
     if (!isStorageEntry(entry)) {
-      // Only return values that were created by greatstorage (has the entry marker). This allows greatstorage to coexist with other data in the same storage.
+      // Only return values that were created by greatstorage (has the entry marker).
+      // This allows greatstorage to coexist with other data in the same storage.
       return null;
     }
 
@@ -105,11 +104,29 @@ export function createStorage(options: CoreStorageOptions): GreatStorage {
   }
 
   function setItem<T = unknown>(key: string, value: T, options?: StorageOptions): void {
+    const expiry = resolveExpiry(options);
+
+    if (process.env.NODE_ENV !== 'production') {
+      if (value === null && !warned!.has(`null:${key}`)) {
+        warned!.add(`null:${key}`);
+        console.warn(
+          `[greatstorage] Storing \`null\` for key "${key}". This is indistinguishable from a missing key when read back with \`getItem()\`. If you need to distinguish between "set to null" and "not set", consider using a sentinel value or pairing \`getItem()\` with \`has()\`.`,
+        );
+      }
+
+      if (expiry != null && Date.now() > expiry && !warned!.has(`expiry:${key}`)) {
+        warned!.add(`expiry:${key}`);
+        console.warn(
+          `[greatstorage] Key "${key}" is being stored with an expiry already in the past. It will be treated as expired immediately on the next read.`,
+        );
+      }
+    }
+
     const entry: StorageEntryEnvelope = {
       [ENTRY_MARKER]: true as const,
       version: 1, // Useful for future-proofing in case we need to change the storage format
       value,
-      expiry: resolveExpiry(options),
+      expiry,
     };
     storage.setItem(prefixedKey(key), serializer.stringify(entry));
   }
@@ -121,6 +138,16 @@ export function createStorage(options: CoreStorageOptions): GreatStorage {
     }
 
     const value = factory();
+
+    if (process.env.NODE_ENV !== 'production') {
+      if (value === null && !warned!.has(`getOrInit:${key}`)) {
+        warned!.add(`getOrInit:${key}`);
+        console.warn(
+          `[greatstorage] \`getOrInit()\` factory for key "${key}" returned \`null\`. Since \`getItem()\` also returns \`null\` for missing keys, the factory will be called again on every \`getOrInit()\` call.`,
+        );
+      }
+    }
+
     setItem(key, value, options);
     return value;
   }

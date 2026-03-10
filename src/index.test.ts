@@ -40,6 +40,7 @@ describe('greatstorage', () => {
     });
 
     it('stores and retrieves null value', () => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
       storage.setItem('empty', null);
       expect(storage.getItem('empty')).toBeNull();
       expect(storage.has('empty')).toBe(true);
@@ -658,6 +659,83 @@ describe('greatstorage', () => {
       vi.advanceTimersByTime(1001);
       expect(storage.getItem('temp', { schema: stringSchema })).toBeNull();
       vi.useRealTimers();
+    });
+  });
+
+  describe('development warnings', () => {
+    // Each test uses unique key names to avoid collisions with the
+    // module-level warned set which deduplicates across the process.
+
+    it('warns when storing null', () => {
+      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      storage.setItem('warn-null', null);
+      expect(spy).toHaveBeenCalledOnce();
+      expect(spy.mock.calls[0]![0]).toContain('Storing `null`');
+      expect(spy.mock.calls[0]![0]).toContain('"warn-null"');
+    });
+
+    it('warns when TTL is already expired', () => {
+      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      storage.setItem('warn-ttl', 'value', { ttl: -1000 });
+      expect(spy).toHaveBeenCalledOnce();
+      expect(spy.mock.calls[0]![0]).toContain('expiry already in the past');
+    });
+
+    it('warns when expiresAt is in the past', () => {
+      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      storage.setItem('warn-expires', 'value', { expiresAt: Date.now() - 1000 });
+      expect(spy).toHaveBeenCalledOnce();
+      expect(spy.mock.calls[0]![0]).toContain('expiry already in the past');
+    });
+
+    it('warns when getOrInit factory returns null', () => {
+      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      storage.getOrInit('warn-init', () => null);
+      expect(spy).toHaveBeenCalledWith(expect.stringContaining('`getOrInit()` factory'));
+      expect(spy.mock.calls[0]![0]).toContain('"warn-init"');
+    });
+
+    it('does not warn for normal setItem', () => {
+      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      storage.setItem('warn-ok', 'value');
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('does not warn for valid TTL', () => {
+      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      storage.setItem('warn-ok-ttl', 'value', { ttl: 5000 });
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('warns only once per key for repeated null stores', () => {
+      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      storage.setItem('warn-dedup-null', null);
+      storage.setItem('warn-dedup-null', null);
+      storage.setItem('warn-dedup-null', null);
+      expect(spy).toHaveBeenCalledOnce();
+    });
+
+    it('warns only once per key for repeated past-expiry stores', () => {
+      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      storage.setItem('warn-dedup-expiry', 'a', { ttl: -1 });
+      storage.setItem('warn-dedup-expiry', 'b', { ttl: -1 });
+      expect(spy).toHaveBeenCalledOnce();
+    });
+
+    it('warns only once per key for repeated getOrInit with null factory', () => {
+      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      storage.getOrInit('warn-dedup-init', () => null);
+      storage.getOrInit('warn-dedup-init', () => null);
+      storage.getOrInit('warn-dedup-init', () => null);
+      // getOrInit warns once, and the setItem null warning fires once too
+      expect(spy).toHaveBeenCalledTimes(2);
+    });
+
+    it('warns separately for different keys', () => {
+      const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      storage.setItem('warn-diff-a', null);
+      storage.setItem('warn-diff-b', null);
+      expect(spy).toHaveBeenCalledTimes(2);
     });
   });
 
