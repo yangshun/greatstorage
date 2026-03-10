@@ -17,6 +17,12 @@ Gives `localStorage` superpowers. Handles serialization of rich types, key expir
 npm install greatstorage
 ```
 
+## How it works
+
+Internally, every value is stored as an object rather than being written to the storage raw. That object carries the user `value`, an optional `expiry`, a `version`, and an internal `__gs` marker. The marker is there so `greatstorage` can reliably tell its own entries apart from unrelated keys already living in the same `Storage`. The version is there so the on-disk format can evolve later without guessing which shape an older entry used if this library ever needs to change the internal storage structure.
+
+Refer to the [longer section](#how-it-works-longer-version) below for more explanation regarding internals and design decisions.
+
 ## Usage
 
 ### Basic
@@ -238,6 +244,12 @@ Options:
 
 `ttl` and `expiresAt` cannot be used together.
 
+`getOrInit()` is useful for migrating from an existing `localStorage` (but non-`greatstorage`) key. To do that, specify a `factory` function that reads from the existing `localStorage` key.
+
+```ts
+const theme = storage.getOrInit('theme', () => localStorage.getItem('theme'));
+```
+
 ### `updateItem<T = unknown>(key: string, updater: (value: T | null) => T, options?: StorageOptions): T`
 
 Calls `updater(currentValue)` where `currentValue` is the existing value (or `null`), stores the result, and returns it.
@@ -282,6 +294,57 @@ Expired entries are excluded from the count but not removed unless read via `get
 ### `createMemoryStorage(): Storage`
 
 Returns an in-memory `Storage` implementation. Useful for testing or server-side usage.
+
+## How it works (longer version)
+
+`greatstorage` is intentionally small. Under the hood, it's a thin wrapper around a `Storage` backend that serializes your value together with a bit of metadata, then gives you a nicer API for reading it back safely.
+
+### Internal entry format
+
+Each stored value is wrapped in an internal envelope before being written to storage. That envelope includes a marker, a format version, your actual value, and an optional expiry timestamp.
+
+This is what lets `greatstorage` tell its own entries apart from random keys already sitting in `localStorage`, attach TTL metadata without changing your value shape, and leave room to evolve the format later without pretending raw strings are part of the contract.
+
+### Serialization by default, not by accident
+
+By default, `greatstorage` uses [`devalue`](https://github.com/sveltejs/devalue) instead of `JSON.stringify()`. The point is not novelty. It's that JSON quietly loses or mangles useful JavaScript values like `Set`, `Map`, `Date`, `RegExp`, `BigInt`, `undefined`, `NaN`, and circular references.
+
+The serializer is configurable on purpose. If you want `superjson`, or plain JSON for a more constrained setup, you can swap in your own `stringify` and `parse` methods and keep the rest of the API unchanged. Future versions will ship a minimal core that doesn't bundle `devalue` if you want to provide your own implementation.
+
+### Expiration is lazy on read
+
+TTL support is implemented as metadata on the entry, not as a background cleanup job. When you call `getItem()`, expired entries are treated as missing and removed immediately. `has()`, `key()`, and `length` also treat expired entries as missing, but they do not mutate storage.
+
+That split is deliberate. Reads that already need the value can pay the cleanup cost, while bookkeeping-style operations stay predictable and side-effect free. If you want to proactively sweep old entries, `clearExpired()` is the explicit escape hatch.
+
+### Namespaces stay in their lane
+
+When you pass a `prefix`, `greatstorage` stores keys as `prefix + separator + key`. That isolates one logical namespace from another without requiring a separate storage backend.
+
+It also means `clear()` only removes `greatstorage` entries in the current namespace. Keys written by other code, or values that were never written by `greatstorage` in the first place, are ignored rather than parsed opportunistically and guessed at.
+
+### Why a factory, not a class
+
+`createStorage()` returns a plain object built from a closure instead of an instance of a class. That keeps helper functions and configuration genuinely private, avoids `this` binding nonsense when methods are destructured, and makes the result easy to mock in tests.
+
+It also matches the library's actual shape better: you're configuring a storage adapter around any `Storage`-compatible backend, whether that's `localStorage`, `sessionStorage`, or the in-memory implementation.
+
+### Why validation happens on read
+
+Schema validation happens when values come back out of storage, not when they go in. That's the trust boundary that matters. Browser storage is user-tamperable, and even valid data at write time can become invalid later if your schema changes.
+
+So `getItem({ schema })` validates the retrieved value right before your app uses it. If validation fails, you get `null`. If the schema is async, `greatstorage` rejects it immediately rather than hiding asynchronous behavior behind a synchronous storage API.
+
+## Caveats
+
+- **Still synchronous storage**: This wraps `localStorage`-style APIs, so reads and writes are still synchronous and still subject to browser storage quotas.
+- **Changing serializers can strand old entries**: `getItem()` has a JSON fallback, but enumeration-based APIs like `clear()`, `clearExpired()`, `key()`, and `length` depend on the current serializer being able to parse old values. If you ever need to change serializers, we recommend changing the `prefix` and using a new namespace.
+- **Expired entries are cleaned up lazily**: Expired data is hidden from reads immediately, but it may still occupy storage until `getItem()` touches it or `clearExpired()` is called.
+- **`null` means several things**: `getItem()` returns `null` for missing keys, expired entries, foreign values not written by `greatstorage`, parse failures, and schema validation failures.
+- **Stored `null` and missing keys look the same**: If that distinction matters, pair `getItem()` with `has()`.
+- **Existing raw `localStorage` values are invisible**: This library only reads entries with its internal marker, so migrating older plain-string or plain-JSON data requires explicit migration code. You can use `getOrInit()` for this purpose, specifying a `factory` function that reads from the existing `localStorage` key.
+- **No atomic updates across tabs or callers**: `getOrInit()` and `updateItem()` are read-modify-write helpers, not transactional operations.
+- **Schema validation is sync-only and non-destructive**: Async schemas throw, and invalid stored values return `null` without being removed automatically.
 
 ## See also
 
