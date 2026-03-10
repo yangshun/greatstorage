@@ -40,7 +40,7 @@
     }
   },
   "scripts": {
-    "check": "pnpm format && pnpm lint && pnpm test",
+    "check": "pnpm format && pnpm lint && pnpm tc && pnpm test",
     "build": "tsdown",
     "prepublishOnly": "pnpm check && pnpm build",
     "format": "oxfmt",

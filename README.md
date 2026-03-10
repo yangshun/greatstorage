@@ -183,7 +183,7 @@ const storage = createStorage({
 
 Because `getItem` and `setItem` weren't enough, here are some bonus methods you didn't know you needed.
 
-#### `getOrInit()`
+#### `storage.getOrInit()`
 
 Get the value if it exists, or writes to storage if it doesn't. Either way, you're getting something back.
 
@@ -194,7 +194,7 @@ const prefs = storage.getOrInit('prefs', () => ({
 }));
 ```
 
-#### `updateItem()`
+#### `storage.updateItem()`
 
 Read-modify-write in one call. Three separate statements was apparently too much work even when AI is writing all the code.
 
@@ -217,15 +217,21 @@ Creates a new storage instance. All options are optional.
 
 Also available from `greatstorage/core` where `serializer` is **required** and `devalue` is not bundled. See [Custom serializer](#custom-serializer).
 
-Returns a `GreatStorage` instance with the following methods:
+Returns a `GreatStorage` instance, that has the same interface as [`Storage`](https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API), with additional APIs.
 
-### `getItem<T = unknown>(key: string): T | null`
+### `GreatStorage` instance
+
+A `GreatStorage` instance with the following methods:
+
+#### `storage.getItem<T = unknown>(key: string): T | null`
 
 Retrieves and deserializes a value. Returns `null` if the key is missing or expired. If the entry is expired, `getItem()` removes it from storage.
 
-### `getItem<T>(key: string, options: { schema: StandardSchema }): T | null`
+#### `storage.getItem<T>(key: string, options: { schema: StandardSchema }): T | null`
 
-Retrieves and deserializes a value. Returns `null` if the key is missing, expired, or fails schema validation. If the entry is expired, `getItem()` removes it from storage.
+Retrieves and deserializes a value. Returns `null` if the key is missing, expired, or fails [schema validation](https://github.com/standard-schema/standard-schema).
+
+If the entry is expired, `getItem()` removes it from storage.
 
 Options:
 
@@ -233,7 +239,7 @@ Options:
 | -------- | ---------------- | --------------------------------------------------------------- |
 | `schema` | `StandardSchema` | Validate the value during read. Async schemas are not supported |
 
-### `setItem<T = unknown>(key: string, value: T, options?: StorageOptions): void`
+#### `storage.setItem<T = unknown>(key: string, value: T, options?: StorageOptions): void`
 
 Serializes and stores a value. Options:
 
@@ -244,7 +250,7 @@ Serializes and stores a value. Options:
 
 `ttl` and `expiresAt` cannot be used together.
 
-### `getOrInit<T>(key: string, factory: () => T, options?: StorageOptions): T`
+#### `storage.getOrInit<T>(key: string, factory: () => T, options?: StorageOptions): T`
 
 Returns the existing value for `key`, or calls `factory()` to create, store, and return a new value.
 
@@ -263,7 +269,7 @@ Options:
 const theme = storage.getOrInit('theme', () => localStorage.getItem('theme'));
 ```
 
-### `updateItem<T = unknown>(key: string, updater: (value: T | null) => T, options?: StorageOptions): T`
+#### `storage.updateItem<T = unknown>(key: string, updater: (value: T | null) => T, options?: StorageOptions): T`
 
 Calls `updater(currentValue)` where `currentValue` is the existing value (or `null`), stores the result, and returns it.
 
@@ -276,29 +282,29 @@ Options:
 
 `ttl` and `expiresAt` cannot be used together.
 
-### `removeItem(key: string): void`
+#### `storage.removeItem(key: string): void`
 
 Removes a single key from the current namespace.
 
-### `has(key: string): boolean`
+#### `storage.has(key: string): boolean`
 
 Returns `true` if the key exists and is not expired. Expired entries are treated as missing and are not removed by `has()`.
 
-### `key(index: number): string | null`
+#### `storage.key(index: number): string | null`
 
 Returns the key at the given zero-based index among non-expired entries, or `null` if the index is out of bounds. Expired entries are skipped but not removed.
 
-### `clear(): void`
+#### `storage.clear(): void`
 
 Removes all entries written by `greatstorage` in the current namespace.
 
 Entries outside the namespace and values not written by `greatstorage` are left untouched.
 
-### `clearExpired(): void`
+#### `storage.clearExpired(): void`
 
 Removes only expired entries in the current namespace.
 
-### `length: number`
+#### `storage.length: number`
 
 The number of non-expired entries in the current namespace.
 
@@ -306,11 +312,11 @@ Expired entries are excluded from the count but not removed unless read via `get
 
 ### `createMemoryStorage(): Storage`
 
-Returns an in-memory `Storage` implementation. Useful for testing or server-side usage.
+Returns an in-memory `Storage` implementation. Useful for tests or server-side usage.
 
 ## How it works (longer version)
 
-`greatstorage` is intentionally small. Under the hood, it's a thin wrapper around a `Storage` backend that serializes your value together with a bit of metadata, then gives you a nicer API for reading it back safely.
+`greatstorage` is intentionally small. Under the hood, it's a thin wrapper around a `Storage` instance (e.g. `localStorage` / `sessionStorage`) that serializes your value together with a bit of metadata, then gives you a nicer API for reading it back safely.
 
 ### Internal entry format
 
