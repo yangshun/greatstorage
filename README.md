@@ -168,6 +168,17 @@ const storage = createStorage({
 });
 ```
 
+If you provide your own serializer and want to keep `devalue` out of your bundle entirely, import from `greatstorage/core` instead. The only difference is that `serializer` is required.
+
+```ts
+import { createStorage } from 'greatstorage/core';
+import superjson from 'superjson';
+
+const storage = createStorage({
+  serializer: { stringify: superjson.stringify, parse: superjson.parse },
+});
+```
+
 ### Additional APIs
 
 Because `getItem` and `setItem` weren't enough, here are some bonus methods you didn't know you needed.
@@ -203,6 +214,8 @@ Creates a new storage instance. All options are optional.
 | `separator`  | `string`     | `":"`          | Separator between prefix and key                       |
 | `storage`    | `Storage`    | `localStorage` | Underlying Storage backend                             |
 | `serializer` | `Serializer` | `devalue`      | Custom serializer with `stringify` and `parse` methods |
+
+Also available from `greatstorage/core` where `serializer` is **required** and `devalue` is not bundled. See [Custom serializer](#custom-serializer).
 
 Returns a `GreatStorage` instance with the following methods:
 
@@ -309,7 +322,7 @@ This is what lets `greatstorage` tell its own entries apart from random keys alr
 
 By default, `greatstorage` uses [`devalue`](https://github.com/sveltejs/devalue) instead of `JSON.stringify()`. The point is not novelty. It's that JSON quietly loses or mangles useful JavaScript values like `Set`, `Map`, `Date`, `RegExp`, `BigInt`, `undefined`, `NaN`, and circular references.
 
-The serializer is configurable on purpose. If you want `superjson`, or plain JSON for a more constrained setup, you can swap in your own `stringify` and `parse` methods and keep the rest of the API unchanged. Future versions will ship a minimal core that doesn't bundle `devalue` if you want to provide your own implementation.
+The serializer is configurable on purpose. If you want `superjson`, or plain JSON for a more constrained setup, you can swap in your own `stringify` and `parse` methods and keep the rest of the API unchanged. If you bring your own serializer, import from `greatstorage/core` to keep `devalue` out of your bundle entirely.
 
 ### Expiration is lazy on read
 

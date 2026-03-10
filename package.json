@@ -27,6 +27,16 @@
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
       }
+    },
+    "./core": {
+      "import": {
+        "types": "./dist/core-entry.d.mts",
+        "default": "./dist/core-entry.mjs"
+      },
+      "require": {
+        "types": "./dist/core-entry.d.cts",
+        "default": "./dist/core-entry.cjs"
+      }
     }
   },
   "scripts": {

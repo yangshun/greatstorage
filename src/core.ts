@@ -1,9 +1,7 @@
-import { stringify, parse } from 'devalue';
 import type {
-  CreateStorageOptions,
+  CoreStorageOptions,
   GetOptions,
   GreatStorage,
-  Serializer,
   StorageOptions,
 } from './types';
 
@@ -32,11 +30,11 @@ function isStorageEntry(data: unknown): data is StorageEntryEnvelope {
 // (forEachEntry, removeEntries, serializer, etc.) are truly private, destructuring
 // works without `this`-binding issues, and the return type is a plain object that
 // is easy to mock in tests.
-export function createStorage(options: CreateStorageOptions = {}): GreatStorage {
+export function createStorage(options: CoreStorageOptions): GreatStorage {
   const storage = options.storage ?? localStorage;
   const separator = options.separator ?? ':';
   const prefix = options.prefix ? options.prefix + separator : '';
-  const serializer: Serializer = options.serializer ?? { stringify, parse };
+  const serializer = options.serializer;
 
   function prefixedKey(key: string): string {
     return prefix + key;

@@ -129,3 +129,12 @@ export interface CreateStorageOptions {
    */
   serializer?: Serializer;
 }
+
+/**
+ * Options for the core `createStorage` function (from `greatstorage/core`).
+ * `serializer` is required because the core entry point does not bundle `devalue`.
+ */
+export type CoreStorageOptions = Omit<CreateStorageOptions, 'serializer'> & {
+  /** Custom serializer with `stringify` and `parse` methods. */
+  serializer: Serializer;
+};
