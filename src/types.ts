@@ -22,7 +22,7 @@ export interface GetOptions<T> {
   schema: StandardSchemaV1<unknown, T>;
 }
 
-export interface GreatStorage {
+interface GreatStorageExtensions {
   /**
    * The number of non-expired entries in the current namespace.
    */
@@ -101,6 +101,13 @@ export interface GreatStorage {
    */
   has(key: string): boolean;
 }
+
+/**
+ * `GreatStorage` is a strict superset of the web `Storage` interface.
+ * It preserves the native API surface while adding typed reads, rich-value writes,
+ * expiry support, and convenience helpers.
+ */
+export type GreatStorage = GreatStorageExtensions & Storage;
 
 export interface Serializer {
   stringify: (value: unknown) => string;

@@ -252,7 +252,7 @@ export function createStorage(options: CoreStorageOptions): GreatStorage {
     return null;
   }
 
-  return {
+  const api = {
     get length() {
       let count = 0;
       for (const [, entry] of entries()) {
@@ -271,5 +271,7 @@ export function createStorage(options: CoreStorageOptions): GreatStorage {
     clear,
     clearExpired,
     has,
-  };
+  } satisfies GreatStorage;
+
+  return api;
 }

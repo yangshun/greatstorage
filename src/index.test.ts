@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, expectTypeOf, vi, beforeEach } from 'vitest';
 import { createStorage, createMemoryStorage } from './index';
+import type { GreatStorage } from './types';
 
 describe('greatstorage', () => {
   let storage: ReturnType<typeof createStorage>;
@@ -9,6 +10,15 @@ describe('greatstorage', () => {
     mockStorage = createMemoryStorage();
     storage = createStorage({ storage: mockStorage });
     vi.restoreAllMocks();
+  });
+
+  it('is assignable to the web Storage interface', () => {
+    const webStorage: Storage = storage;
+
+    webStorage.setItem('name', 'Alice');
+
+    expect(webStorage.getItem('name')).toBe('Alice');
+    expectTypeOf<GreatStorage>().toMatchTypeOf<Storage>();
   });
 
   describe('set and get', () => {
